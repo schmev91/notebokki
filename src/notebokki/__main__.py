@@ -22,7 +22,10 @@ def main(argv: list[str] | None = None) -> int:
         from .setup import main as setup_main
 
         return setup_main(args.from_file, args.extra)
-    # `serve` lands in U5.
+    if args.command == "serve":
+        from .server import serve
+
+        return serve()
     print(f"notebokki {args.command}: not implemented yet", file=sys.stderr)
     return 2
 
