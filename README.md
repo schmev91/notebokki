@@ -1,6 +1,9 @@
 <div align="center">
 
-# notebokki
+<h1>
+  <img src="docs/assets/notebokki.svg" width="56" height="56" align="absmiddle" alt="" />
+  notebokki
+</h1>
 
 **Ask your NotebookLM notebooks from inside Claude.**
 

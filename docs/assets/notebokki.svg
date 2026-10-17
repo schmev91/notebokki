@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="tteokbokki bowl">
+  <title>notebokki</title>
+  <!-- steam -->
+  <g fill="none" stroke="#b9c2cc" stroke-width="4" stroke-linecap="round" opacity="0.8">
+    <path d="M44 22c-6-6 6-10 0-18"/>
+    <path d="M64 20c-6-6 6-10 0-18"/>
+    <path d="M84 22c-6-6 6-10 0-18"/>
+  </g>
+  <!-- bowl -->
+  <path d="M10 60h108c0 30-20 52-54 52S10 90 10 60z" fill="#2f3b4a"/>
+  <path d="M10 60h108c0 6-.6 11.600-1.800 17H11.800C10.600 71.600 10 66 10 60z" fill="#3b4a5d"/>
+  <rect x="42" y="108" width="44" height="8" rx="4" fill="#243040"/>
+  <!-- sauce -->
+  <ellipse cx="64" cy="58" rx="54" ry="16" fill="#d8381e"/>
+  <ellipse cx="64" cy="56" rx="48" ry="12" fill="#ea5a2e"/>
+  <!-- rice cakes (tteok) -->
+  <g stroke="#c4421f" stroke-width="2.500">
+    <rect x="22" y="40" width="46" height="15" rx="7.500" fill="#fbe7c8" transform="rotate(-14 45 47)"/>
+    <rect x="56" y="36" width="46" height="15" rx="7.500" fill="#f7dcb6" transform="rotate(12 79 43)"/>
+    <rect x="38" y="52" width="46" height="15" rx="7.500" fill="#fbe7c8" transform="rotate(-4 61 59)"/>
+  </g>
+  <!-- sauce glaze on the cakes -->
+  <g fill="#ea5a2e" opacity="0.55">
+    <ellipse cx="34" cy="48" rx="8" ry="2.500" transform="rotate(-14 34 48)"/>
+    <ellipse cx="92" cy="44" rx="8" ry="2.500" transform="rotate(12 92 44)"/>
+    <ellipse cx="72" cy="58" rx="8" ry="2.500"/>
+  </g>
+  <!-- scallion and sesame -->
+  <g fill="#5fae4f">
+    <circle cx="26" cy="60" r="3"/>
+    <circle cx="100" cy="58" r="3"/>
+    <circle cx="48" cy="66" r="2.500"/>
+    <circle cx="82" cy="68" r="2.500"/>
+  </g>
+  <g fill="#fff6e0">
+    <circle cx="54" cy="46" r="1.400"/>
+    <circle cx="70" cy="50" r="1.400"/>
+    <circle cx="90" cy="54" r="1.400"/>
+    <circle cx="36" cy="58" r="1.400"/>
+  </g>
+</svg>
