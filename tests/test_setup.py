@@ -171,3 +171,83 @@ def test_cli_rejects_payload_given_as_argument(capsys, tmp_path, monkeypatch):
     assert main(["setup", GOOD]) == 2
     assert "stdin" in capsys.readouterr().out
     assert not (tmp_path / "notebokki").exists()
+
+
+class RaisingOpen:
+    def __init__(self, exc):
+        self.exc = exc
+
+    async def __aenter__(self):
+        raise self.exc
+
+    async def __aexit__(self, *a):
+        return None
+
+
+async def run_with_previous(tmp_path, gw):
+    session = tmp_path / "cfg" / "session" / "storage_state.json"
+    session.parent.mkdir(parents=True)
+    session.write_text(GOOD_ALT)
+    out = []
+    code = await setup.run_setup(
+        payload_text=GOOD,
+        registry_path=registry(tmp_path, NB1),
+        session_path=session,
+        gateway_factory=lambda p: gw,
+        out=out.append,
+    )
+    return code, "\n".join(out), session
+
+
+async def test_session_failure_at_open_restores_the_previous_session(tmp_path):
+    code, out, session = await run_with_previous(tmp_path, RaisingOpen(errors.SessionError()))
+    assert code == 1 and "Setup stopped" in out and "restored" in out
+    assert session.read_text() == GOOD_ALT
+
+
+async def test_session_failure_with_no_previous_session_removes_the_new_one(tmp_path):
+    gw = FakeGateway({"aaa111": errors.SessionError()})
+    code, out, session = await run(tmp_path, GOOD, gw, NB1)
+    assert code == 1 and "removed" in out
+    assert not session.exists()
+
+
+async def test_non_session_open_failure_is_reported_not_a_traceback(tmp_path):
+    code, out, session = await run_with_previous(
+        tmp_path, RaisingOpen(errors.UpstreamError("ConnectError"))
+    )
+    assert code == 1 and "ConnectError" in out
+    assert session.read_text() == GOOD  # saved; validity just could not be checked
+
+
+async def test_failed_mode_check_leaves_the_previous_session_untouched(tmp_path, monkeypatch):
+    session = tmp_path / "cfg" / "session" / "storage_state.json"
+    session.parent.mkdir(parents=True)
+    session.write_text(GOOD_ALT)
+    monkeypatch.setattr(setup, "_file_mode", lambda path: 0o777)
+    with pytest.raises(setup.SetupError):
+        setup.write_session(session, GOOD)
+    assert session.read_text() == GOOD_ALT
+    assert not list(session.parent.glob(".*.tmp"))
+
+
+def test_read_payload_from_file_and_stdin_and_tty(tmp_path):
+    f = tmp_path / "p.json"
+    f.write_text(GOOD)
+    assert setup.read_payload(str(f)) == GOOD
+
+    class Pipe:
+        def isatty(self):
+            return False
+
+        def read(self):
+            return GOOD
+
+    class Tty(Pipe):
+        def isatty(self):
+            return True
+
+    assert setup.read_payload(None, Pipe()) == GOOD
+    assert setup.read_payload(None, Tty()) is None
+    with pytest.raises(setup.SetupError):
+        setup.read_payload(str(tmp_path / "nope.json"))

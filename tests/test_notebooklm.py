@@ -318,3 +318,15 @@ async def test_cancellation_is_not_swallowed_into_an_error_branch(tmp_path):
     gw = await open_gateway(tmp_path, Recorder(raises=asyncio.CancelledError()))
     with pytest.raises(asyncio.CancelledError):
         await gw.search(NB, "q")
+
+
+async def test_ask_survives_a_failed_title_lookup(tmp_path):
+    class Flaky(Recorder):
+        async def _list(self, notebook_id, **kw):
+            raise RuntimeError("list down")
+
+    client = Flaky(answer=SimpleNamespace(answer="the answer", references=[ref("s1")]))
+    gw = await open_gateway(tmp_path, client)
+    res = await gw.ask(NB, "q")
+    assert res.answer == "the answer"
+    assert res.sources[0].resolved is False

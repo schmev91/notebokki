@@ -150,7 +150,7 @@ class Gateway:
         refs: dict[str, str | None] = {}
         for r in result.references or []:
             refs.setdefault(r.source_id, r.cited_text)
-        titles = await self._resolve(notebook_id, list(refs))
+        titles = await self._titles_or_unresolved(notebook_id, list(refs))
         return Answer(
             answer=result.answer,
             sources=[SourceRef(sid, *titles[sid], cited_text=refs[sid]) for sid in refs],
@@ -161,7 +161,7 @@ class Gateway:
     ) -> list[Passage]:
         with _classified():
             chunks = await self._client.sources.search(notebook_id, query, limit=limit)
-        titles = await self._resolve(notebook_id, [c.source_id for c in chunks])
+        titles = await self._titles_or_unresolved(notebook_id, [c.source_id for c in chunks])
         return [Passage(c.text, c.rank, c.source_id, *titles[c.source_id]) for c in chunks]
 
     async def _fetch_titles(self, notebook_id: str) -> dict[str, str | None]:
@@ -169,6 +169,15 @@ class Gateway:
             sources = await self._client.sources.list(notebook_id)
         self._titles[notebook_id] = {s.id: s.title for s in sources}
         return self._titles[notebook_id]
+
+    async def _titles_or_unresolved(
+        self, notebook_id: str, ids: list[str]
+    ) -> dict[str, tuple[str, bool]]:
+        """The answer is already in hand; a failed title lookup must not discard it."""
+        try:
+            return await self._resolve(notebook_id, ids)
+        except errors.NotebokkiError:
+            return {i: (f"[unresolved source {i}]", False) for i in ids}
 
     async def _resolve(self, notebook_id: str, ids: list[str]) -> dict[str, tuple[str, bool]]:
         if not ids:
