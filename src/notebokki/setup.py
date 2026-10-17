@@ -6,6 +6,7 @@ which is visible in shell history and to any process, nor from an interactive pr
 canonical-mode line limit would silently truncate a multi-kilobyte cookie set.
 """
 
+import asyncio
 import json
 import os
 import stat
@@ -65,11 +66,9 @@ def write_session(path: Path, text: str) -> None:
     except OSError:
         pass
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    try:
-        os.fchmod(fd, 0o600)
-        os.write(fd, text.encode("utf-8"))
-    finally:
-        os.close(fd)
+    with os.fdopen(fd, "wb") as f:  # buffered write: a short os.write must not truncate it
+        os.fchmod(f.fileno(), 0o600)
+        f.write(text.encode("utf-8"))
     if _file_mode(path) != 0o600:
         path.unlink(missing_ok=True)
         raise SetupError(
@@ -144,8 +143,6 @@ def read_payload(from_file: str | None, stdin=None) -> str | None:
 
 
 def main(from_file: str | None, extra: list[str]) -> int:
-    import asyncio
-
     return asyncio.run(
         run_setup(
             payload_text=None if extra else read_payload(from_file),

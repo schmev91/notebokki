@@ -8,7 +8,7 @@ content, sends a conversation identifier, or touches a chat thread's lifecycle (
 import json
 import logging
 import sys
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,6 +17,7 @@ import notebooklm
 from . import errors
 
 DEFAULT_PASSAGES = 5
+MAX_PASSAGES = 20
 # Explicit, not inherited: the library's defaults retry a throttled call with backoff behind a
 # long chat timeout, turning throttling into minutes of latency instead of a classifiable error.
 RATE_LIMIT_RETRIES = 1
@@ -59,7 +60,7 @@ class _CookieValueFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         try:
             message = record.getMessage()
-        except Exception:  # noqa: BLE001 - unreadable session means no values to guard
+        except Exception:  # noqa: BLE001 - a record that cannot render is dropped, never risked
             return False
         return not any(v in message for v in self._values)
 
@@ -97,6 +98,16 @@ def classify(exc: BaseException) -> errors.NotebokkiError:
     return errors.UpstreamError(type(exc).__name__)
 
 
+@contextmanager
+def _classified():
+    """Turn any library failure into one of the four branches. Catches Exception, not
+    BaseException, so cancellation still propagates."""
+    try:
+        yield
+    except Exception as exc:  # noqa: BLE001 - every failure must land in a branch (KTD7)
+        raise classify(exc) from None
+
+
 @asynccontextmanager
 async def _open_library_client(path: Path):
     ctx = notebooklm.NotebookLMClient.from_storage(
@@ -122,10 +133,8 @@ class Gateway:
 
     async def __aenter__(self) -> "Gateway":  # noqa: PYI034
         install_log_guard(_cookie_values(self._path))
-        try:
+        with _classified():
             self._client = await self._stack.enter_async_context(self._factory(self._path))
-        except Exception as exc:  # noqa: BLE001 - every failure must land in a branch (KTD7)
-            raise classify(exc) from None
         return self
 
     async def __aexit__(self, *exc_info) -> None:
@@ -136,10 +145,8 @@ class Gateway:
         return len(await self._fetch_titles(notebook_id))
 
     async def ask(self, notebook_id: str, question: str) -> Answer:
-        try:
+        with _classified():
             result = await self._client.chat.ask(notebook_id, question)
-        except Exception as exc:  # noqa: BLE001 - every failure must land in a branch (KTD7)
-            raise classify(exc) from None
         refs: dict[str, str | None] = {}
         for r in result.references or []:
             refs.setdefault(r.source_id, r.cited_text)
@@ -152,27 +159,25 @@ class Gateway:
     async def search(
         self, notebook_id: str, query: str, limit: int = DEFAULT_PASSAGES
     ) -> list[Passage]:
-        try:
+        with _classified():
             chunks = await self._client.sources.search(notebook_id, query, limit=limit)
-        except Exception as exc:  # noqa: BLE001 - every failure must land in a branch (KTD7)
-            raise classify(exc) from None
         titles = await self._resolve(notebook_id, [c.source_id for c in chunks])
         return [Passage(c.text, c.rank, c.source_id, *titles[c.source_id]) for c in chunks]
 
     async def _fetch_titles(self, notebook_id: str) -> dict[str, str | None]:
-        try:
+        with _classified():
             sources = await self._client.sources.list(notebook_id)
-        except Exception as exc:  # noqa: BLE001 - every failure must land in a branch (KTD7)
-            raise classify(exc) from None
         self._titles[notebook_id] = {s.id: s.title for s in sources}
         return self._titles[notebook_id]
 
     async def _resolve(self, notebook_id: str, ids: list[str]) -> dict[str, tuple[str, bool]]:
+        if not ids:
+            return {}
         known = self._titles.get(notebook_id)
         if known is None:
             known = await self._fetch_titles(notebook_id)
-        if any(i not in known for i in ids):
-            known = await self._fetch_titles(notebook_id)  # refresh once on a miss
+        elif any(i not in known for i in ids):
+            known = await self._fetch_titles(notebook_id)  # refresh a stale map once on a miss
         out = {}
         for i in ids:
             title = known.get(i)

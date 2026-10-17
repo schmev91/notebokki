@@ -237,8 +237,20 @@ async def test_title_miss_refreshes_once_then_degrades(tmp_path):
         titles={"s1": "Doc"}, chunks=[chunk("ghost", "t", 1), chunk("ghost2", "t", 2)]
     )
     gw = await open_gateway(tmp_path, client)
+    await gw.prime(NB)
     await gw.search(NB, "q")
     assert [c[0] for c in client.calls].count("sources.list") == 2  # prime + one refresh
+
+
+async def test_cold_miss_does_not_list_twice_and_empty_results_do_not_list(tmp_path):
+    client = Recorder(titles={"s1": "Doc"}, chunks=[chunk("ghost", "t", 1)])
+    gw = await open_gateway(tmp_path, client)
+    await gw.search(NB, "q")
+    assert [c[0] for c in client.calls].count("sources.list") == 1
+    empty = Recorder(chunks=[])
+    gw2 = await open_gateway(tmp_path, empty)
+    await gw2.search(NB, "q")
+    assert [c[0] for c in empty.calls].count("sources.list") == 0
 
 
 async def test_prime_makes_exactly_one_list_call(tmp_path):

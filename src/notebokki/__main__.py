@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,12 +21,9 @@ def main(argv: list[str] | None = None) -> int:
         from .setup import main as setup_main
 
         return setup_main(args.from_file, args.extra)
-    if args.command == "serve":
-        from .server import serve
+    from .server import serve
 
-        return serve()
-    print(f"notebokki {args.command}: not implemented yet", file=sys.stderr)
-    return 2
+    return serve()
 
 
 if __name__ == "__main__":

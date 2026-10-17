@@ -1,13 +1,14 @@
 """The MCP tool surface: list_topics, ask, search. No tool mutates a notebook (R10)."""
 
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 from . import config, errors
-from .notebooklm import DEFAULT_PASSAGES, Answer, Gateway, Passage
+from .notebooklm import DEFAULT_PASSAGES, MAX_PASSAGES, Answer, Gateway, Passage
 from .registry import Registry, RegistryError, Topic
 
 _OPEN, _CLOSE = "<<<NOTEBOOK-CONTENT", "NOTEBOOK-CONTENT>>>"
@@ -108,8 +109,6 @@ def _render_passages(topic: Topic, passages: list[Passage]) -> str:
 
 
 def create_server(app: App) -> MCPServer:
-    from contextlib import asynccontextmanager
-
     @asynccontextmanager
     async def lifespan(_server):
         await app.open()
@@ -120,12 +119,16 @@ def create_server(app: App) -> MCPServer:
 
     server = MCPServer("notebokki", lifespan=lifespan)
 
-    def resolve(topic: str) -> Topic:
+    def registry() -> Registry:
         if app.registry is None:
             raise ToolError(f"The registry is unusable: {app.registry_error}")
-        entry = app.registry.resolve(topic)
+        return app.registry
+
+    def resolve(topic: str) -> Topic:
+        reg = registry()
+        entry = reg.resolve(topic)
         if entry is None:
-            raise ToolError(str(errors.UnknownTopicError(topic, app.registry.topics())))
+            raise ToolError(str(errors.UnknownTopicError(topic, reg.topics())))
         return entry
 
     def gateway():
@@ -145,9 +148,7 @@ def create_server(app: App) -> MCPServer:
 
     @server.tool(description=LIST_DESCRIPTION)
     async def list_topics() -> str:
-        if app.registry is None:
-            raise ToolError(f"The registry is unusable: {app.registry_error}")
-        return "\n".join(f"- {e.topic}: {e.description}" for e in app.registry.entries())
+        return "\n".join(f"- {e.topic}: {e.description}" for e in registry().entries())
 
     @server.tool(description=ASK_DESCRIPTION)
     async def ask(topic: str, question: str) -> str:
@@ -160,7 +161,7 @@ def create_server(app: App) -> MCPServer:
     @server.tool(description=SEARCH_DESCRIPTION)
     async def search(topic: str, query: str, max_passages: int = DEFAULT_PASSAGES) -> str:
         entry = resolve(topic)
-        limit = max(1, min(int(max_passages), 20))
+        limit = max(1, min(max_passages, MAX_PASSAGES))
         try:
             found = await gateway().search(entry.notebook_id, query, limit=limit)
             return _render_passages(entry, found)
