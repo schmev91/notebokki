@@ -34,9 +34,7 @@ def test_explicit_override_beats_xdg(monkeypatch, tmp_path):
     assert config.session_path(ses) == ses
 
 
-def test_registry_and_session_are_distinct_and_session_has_its_own_directory(
-    monkeypatch, tmp_path
-):
+def test_registry_and_session_are_distinct_and_session_has_its_own_directory(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     reg, ses = config.registry_path(), config.session_path()
     assert reg != ses

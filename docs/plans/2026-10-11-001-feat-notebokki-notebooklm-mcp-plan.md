@@ -298,6 +298,11 @@ U3 carries the first live contact with the service, and it carries it deliberate
 - Default passage count for the verbatim path — pick a conservative default, tune once real review use shows whether answers come back over- or under-trimmed.
 - Which notebook URL forms to accept when deriving the identifier, per R4. Both `notebooklm.google.com` and `notebook.google.com` appear in use; accept the forms that occur.
 
+**Resolved at the U3 live gate (2026-10-17)**
+
+- A hand-authored storage-state payload authenticates. Shape that worked: `{"cookies": [...], "origins": []}`, with 24 cookies derived from a browser request's `Cookie` header, each entry `domain: ".google.com"`, `path: "/"`, `expires: -1`, `secure: true`. The library opened the client from an explicit path (round-trip succeeded) and `sources.list` and `sources.search` both returned real data against a registered `notebook.google.com` notebook. The file stayed at mode `0600`.
+- Observed: `sources.search` returned zero chunks for the bare query `the` and 2-3 chunks for topical queries; many returned chunks are very short (about 45 characters) beside occasional long ones, which bears on the default passage count.
+
 ---
 
 ## Implementation Units

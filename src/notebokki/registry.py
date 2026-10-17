@@ -35,7 +35,9 @@ class Registry:
         except FileNotFoundError:
             raise RegistryError(f"registry not found at {path}") from None
         except OSError as exc:
-            raise RegistryError(f"registry at {path} is unreadable ({type(exc).__name__})") from None
+            raise RegistryError(
+                f"registry at {path} is unreadable ({type(exc).__name__})"
+            ) from None
         try:
             data = json.loads(raw)
         except json.JSONDecodeError:
@@ -49,8 +51,14 @@ class Registry:
             if not isinstance(item, dict):
                 raise RegistryError(f"topic {name!r}: entry must be an object")
             url, description = item.get("url"), item.get("description")
-            if not isinstance(url, str) or not isinstance(description, str) or not description.strip():
-                raise RegistryError(f"topic {name!r}: needs a string 'url' and a non-empty 'description'")
+            if (
+                not isinstance(url, str)
+                or not isinstance(description, str)
+                or not description.strip()
+            ):
+                raise RegistryError(
+                    f"topic {name!r}: needs a string 'url' and a non-empty 'description'"
+                )
             match = _NOTEBOOK_URL.match(url.strip())
             if not match:
                 raise RegistryError(f"topic {name!r}: cannot derive a notebook id from its url")

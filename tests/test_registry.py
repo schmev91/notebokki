@@ -17,7 +17,9 @@ def entry(url, desc="Billing rules"):
 
 
 def test_full_browser_url_resolves_to_bare_id(tmp_path):
-    p = write(tmp_path / "r.json", {"billing": entry(f"https://notebooklm.google.com/notebook/{NB}")})
+    p = write(
+        tmp_path / "r.json", {"billing": entry(f"https://notebooklm.google.com/notebook/{NB}")}
+    )
     assert Registry.load(p).resolve("billing").notebook_id == NB
 
 
@@ -36,7 +38,9 @@ def test_underivable_url_fails_naming_topic(tmp_path):
 
 
 def test_unknown_topic_returns_none_with_no_near_match(tmp_path):
-    p = write(tmp_path / "r.json", {"billing": entry(f"https://notebooklm.google.com/notebook/{NB}")})
+    p = write(
+        tmp_path / "r.json", {"billing": entry(f"https://notebooklm.google.com/notebook/{NB}")}
+    )
     reg = Registry.load(p)
     assert reg.resolve("bill") is None
     assert reg.resolve("Billing") is None
