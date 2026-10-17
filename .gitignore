@@ -1,1 +1,14 @@
 .compound-engineering/*.local.yaml
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Backstop: never let the config directory (registry, session credential) be committed
+# if a developer overrides its path into a working tree.
+.config/notebokki/
+notebokki/session/
+**/storage_state*.json
