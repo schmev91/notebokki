@@ -8,6 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Layout: `src/notebokki/` — `config.py` (all paths), `registry.py` (allowlist, exact match), `notebooklm.py` (the only library importer; `Gateway`, error classification, title map, log guard), `errors.py` (the four branches), `setup.py` (session ingest and per-topic validation), `server.py` (the three tools and the provenance envelope), `__main__.py` (`notebokki setup|serve`).
 
+User-facing docs: `README.md` (overview), `docs/SETUP.md` (install, session capture, wiring into Claude), and `CLAUDE.BUSINESS-RULE.md` (a snippet other projects import with `@` so Claude consults notebokki for business rules). Keep them in step with the code.
+
 `docs/plans/2026-10-11-001-feat-notebokki-notebooklm-mcp-plan.md` is the source of truth for what notebokki is and how it is built. It is a compound-engineering unified plan at `artifact_readiness: implementation-ready`. Read it by heading (`## Goal Capsule`, `## Product Contract`, `## Planning Contract`, `## Implementation Units`, `## Verification Contract`, `## Definition of Done`) rather than end to end.
 
 ## What notebokki is
